@@ -226,9 +226,9 @@ function App() {
             </div>
             <div className="px-4 py-3">
               <div className="bg-[#2B5278] rounded-lg rounded-bl-sm px-3.5 py-2.5 inline-block max-w-full">
-                <p className="text-sm leading-relaxed whitespace-pre-wrap font-sans text-[#E6EDF3]" style={{ wordBreak: 'break-word' }}>
-                  {customText || 'No content yet. Refresh the feed first.'}
-                </p>
+                <div className="text-sm leading-relaxed whitespace-pre-wrap font-sans text-[#E6EDF3]" style={{ wordBreak: 'break-word' }}>
+                  <FormattedTelegram text={customText || 'No content yet. Refresh the feed first.'} />
+                </div>
               </div>
               <div className="mt-1 text-[10px] text-[#6E7681] font-mono">
                 {new Date().toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}
@@ -288,6 +288,43 @@ function App() {
       )}
     </div>
   );
+}
+
+// Renders Telegram-style Markdown links as clickable HTML in the preview
+function FormattedTelegram({ text }: { text: string }) {
+  // Convert [text](url) to <a href="url">text</a>
+  const parts = text.split(/(\[([^\]]+)\]\(([^)]+)\))/g);
+  const elements: React.ReactNode[] = [];
+  let i = 0;
+  while (i < parts.length) {
+    if (parts[i] && parts[i].startsWith('[') && parts[i+2]) {
+      // Full match is parts[i], text is parts[i+1], url is parts[i+2]
+      elements.push(
+        <a
+          key={i}
+          href={parts[i+2]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#58A6FF] hover:underline"
+        >
+          {parts[i+1]}
+        </a>
+      );
+      i += 4;
+    } else {
+      // Plain text - render line by line
+      if (parts[i]) {
+        const lines = parts[i].split('\n');
+        lines.forEach((line, li) => {
+          elements.push(<span key={`${i}-${li}`}>{line}</span>);
+          if (li < lines.length - 1) elements.push(<br key={`br-${i}-${li}`} />);
+        });
+      }
+      i++;
+    }
+  }
+
+  return <>{elements.length > 0 ? elements : text}</>;
 }
 
 export default App;
