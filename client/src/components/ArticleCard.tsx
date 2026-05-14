@@ -16,9 +16,13 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 const SOURCE_COLORS: Record<string, string> = {
-  'HN': '#FF6600',
-  'TC': '#0A9E01',
-  'VB': '#F25963',
+  'E27': '#00A86B',
+  'TIA': '#FF6B35',
+  'DSA': '#1A73E8',
+  'KRA': '#E53935',
+  'SBR': '#00897B',
+  'OGV': '#1565C0',
+  'VPC': '#E91E63',
 };
 
 interface ArticleCardProps {

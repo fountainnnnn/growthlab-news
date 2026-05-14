@@ -39,6 +39,18 @@ export async function postToTelegram(): Promise<{ status: string; messageId?: nu
   return fetchJSON(`${BASE}/post/telegram`, { method: 'POST' });
 }
 
+export async function postCustomToTelegram(text: string): Promise<{ status: string; messageId?: number; message?: string }> {
+  return fetchJSON(`${BASE}/post/telegram/custom`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+}
+
+export async function regenerateDigest(): Promise<{ status: string; digest: { channelFormats: { telegram: string }; relevantCount: number } }> {
+  return fetchJSON(`${BASE}/digest/regenerate`, { method: 'POST' });
+}
+
 export async function getSources(): Promise<{ sources: Source[] }> {
   return fetchJSON(`${BASE}/sources`);
 }

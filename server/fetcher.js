@@ -1,50 +1,88 @@
 const RssParser = require('rss-parser');
+const axios = require('axios');
+
 const parser = new RssParser({
   timeout: 15000,
   headers: {
-    'User-Agent': 'GrowthLabNews/1.0 (SEA Founder Intelligence)'
+    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36'
+  }
+});
+
+// Lenient parser for feeds with XML issues
+const lenientParser = new RssParser({
+  timeout: 15000,
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36'
+  },
+  strictDTD: false,
+  customFields: {
+    item: [],
   }
 });
 
 const FEEDS = [
   {
-    name: 'Hacker News',
-    url: 'https://news.ycombinator.com/rss',
+    name: 'e27',
+    url: 'https://e27.co/feed/',
     category: 'Startups',
-    sourceKey: 'HN'
+    sourceKey: 'E27'
   },
   {
-    name: 'HN Launches',
-    url: 'https://hnrss.org/launches',
-    category: 'Product Launch',
-    sourceKey: 'HN'
-  },
-  {
-    name: 'HN Active',
-    url: 'https://hnrss.org/active',
-    category: 'Startups',
-    sourceKey: 'HN'
-  },
-  {
-    name: 'TechCrunch',
-    url: 'https://techcrunch.com/feed/',
+    name: 'OpenGov Asia',
+    url: 'https://opengovasia.com/feed/',
     category: 'Big Tech',
-    sourceKey: 'TC'
+    sourceKey: 'OGV'
   },
   {
-    name: 'VentureBeat',
-    url: 'https://venturebeat.com/feed/',
+    name: 'Vulcan Post',
+    url: 'https://vulcanpost.com/feed/',
+    category: 'Startups',
+    sourceKey: 'VPC'
+  },
+  {
+    name: 'Singapore Business Review',
+    url: 'https://sbr.com.sg/rss.xml',
     category: 'Funding',
-    sourceKey: 'VB'
-  }
-  // Note: Product Hunt requires API key.
-  // The Verge feed may be unstable - added as bonus if available
+    sourceKey: 'SBR'
+  },
+  // Keeping 4 strong SEA sources - e27, OpenGov Asia, Vulcan Post, SBR
 ];
 
-async function fetchFeed(feed) {
+// Attempt to fetch a feed by first getting raw XML and cleaning it
+async function fetchFeedWithFallback(feed) {
   const startTime = Date.now();
   try {
+    // Try direct parse first
     const result = await parser.parseURL(feed.url);
+    return { result, startTime };
+  } catch (directErr) {
+    // Fallback: fetch raw XML, clean common issues, parse manually
+    console.warn(`Direct parse failed for [${feed.name}], trying raw fetch...`);
+    try {
+      const resp = await axios.get(feed.url, {
+        timeout: 15000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+        },
+        responseType: 'text'
+      });
+      let xml = resp.data;
+      // Clean malformed entities KrASIA-style: &someword=value
+      xml = xml.replace(/&([a-zA-Z]+)(?=[=])/g, '&amp;$1');
+      // Any other bare &
+      xml = xml.replace(/&(?!(amp|lt|gt|quot|apos|#\d+);)/g, '&amp;');
+      const result = await lenientParser.parseString(xml);
+      return { result, startTime };
+    } catch (fallbackErr) {
+      throw new Error(fallbackErr.message);
+    }
+  }
+}
+
+async function fetchFeed(feed) {
+  try {
+    const { result, startTime } = await fetchFeedWithFallback(feed);
     const articles = (result.items || []).map(item => ({
       id: item.link || item.guid || item.title,
       source: feed.name,
@@ -78,7 +116,7 @@ async function fetchFeed(feed) {
       name: feed.name,
       online: false,
       articleCount: 0,
-      fetchTimeMs: Date.now() - startTime,
+      fetchTimeMs: 0,
       articles: [],
       error: err.message
     };
@@ -86,11 +124,8 @@ async function fetchFeed(feed) {
 }
 
 function extractImage(item) {
-  // Try various image sources from RSS
   if (item.enclosure && item.enclosure.url) return item.enclosure.url;
-  // Check for media:content
   if (item['media:content'] && item['media:content'].$) return item['media:content'].$.url;
-  // Try to find first image in content
   const content = item.content || item.contentSnippet || '';
   const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/);
   if (imgMatch) return imgMatch[1];

@@ -63,5 +63,3 @@ export interface RefreshResponse {
 }
 
 export type TimeFilter = 'all' | 'today' | '24h' | '7d';
-
-export type ChannelType = 'whatsapp' | 'telegram' | 'growthlab';

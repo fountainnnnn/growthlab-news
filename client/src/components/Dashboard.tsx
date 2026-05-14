@@ -1,5 +1,5 @@
 import React from 'react';
-import type { TimeFilter, ChannelType } from './types';
+import type { TimeFilter } from './types';
 
 interface TopBarProps {
   searchQuery: string;
@@ -104,7 +104,7 @@ export function StatsBar({ totalArticles, sourcesOnline, lastRefresh, topKeyword
   );
 }
 
-const CATEGORIES = ['All', 'AI', 'SaaS', 'Funding', 'VC', 'Startups', 'SEA', 'Singapore', 'Product Launch', 'Big Tech'];
+const CATEGORIES = ['All', 'AI', 'SaaS', 'Funding', 'VC', 'Startups', 'Product Launch', 'Big Tech'];
 const TIME_FILTERS: { key: TimeFilter; label: string }[] = [
   { key: 'all', label: 'All Time' },
   { key: 'today', label: 'Today' },
@@ -126,7 +126,7 @@ export function FilterBar({ activeCategory, onCategoryChange, timeFilter, onTime
         {CATEGORIES.map(cat => (
           <button
             key={cat}
-            onClick={() => onCategoryChange(cat === 'All' ? 'all' : cat)}
+            onClick={() => onCategoryChange(cat === 'All' ? 'all' : cat.toLowerCase())}
             className={`category-pill whitespace-nowrap ${
               (activeCategory === cat.toLowerCase() || (activeCategory === 'all' && cat === 'All'))
                 ? 'category-pill-active'
@@ -156,49 +156,4 @@ export function FilterBar({ activeCategory, onCategoryChange, timeFilter, onTime
   );
 }
 
-const CHANNELS: { key: ChannelType; label: string; color: string }[] = [
-  { key: 'whatsapp', label: 'WhatsApp', color: '#075E54' },
-  { key: 'telegram', label: 'Telegram', color: '#2AABEE' },
-  { key: 'growthlab', label: 'GrowthLab App', color: '#7C5CFC' },
-];
-
-interface ChannelPreviewProps {
-  activeChannel: ChannelType;
-  onChannelChange: (c: ChannelType) => void;
-  content: string;
-}
-
-export function ChannelPreview({ activeChannel, onChannelChange, content }: ChannelPreviewProps) {
-  const active = CHANNELS.find(c => c.key === activeChannel)!;
-
-  return (
-    <div className="px-4 md:px-6 py-3">
-      <div className="bg-gl-surface rounded-lg border border-[rgba(139,148,158,0.15)] overflow-hidden">
-        <div className="flex border-b border-[rgba(139,148,158,0.15)]">
-          {CHANNELS.map(ch => (
-            <button
-              key={ch.key}
-              onClick={() => onChannelChange(ch.key)}
-              className={`px-4 py-2 text-xs font-medium transition-colors ${
-                activeChannel === ch.key
-                  ? 'text-white border-b-2'
-                  : 'text-gl-text-secondary hover:text-gl-text'
-              }`}
-              style={activeChannel === ch.key ? { borderBottomColor: ch.color, color: ch.color } : {}}
-            >
-              {ch.label}
-            </button>
-          ))}
-        </div>
-        <div className="p-4">
-          <div
-            className="text-sm leading-relaxed whitespace-pre-wrap font-mono text-[13px]"
-            style={{ color: '#E6EDF3' }}
-          >
-            {content || 'No content yet. Refresh to fetch articles.'}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+// ChannelPreview removed -- moved to dedicated Telegram Publish view

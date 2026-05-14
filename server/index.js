@@ -55,27 +55,9 @@ async function runRefresh() {
     cache.totalFetched = result.totalFetched;
     cache.lastRefresh = new Date().toISOString();
 
-    // Build today's digest
-    const relevant = scored.filter(a => a.relevanceScore >= 30);
-    const keywords = extractTopKeywords(relevant);
+    buildDigest(scored);
 
-    cache.digest = {
-      date: new Date().toISOString().split('T')[0],
-      articles: relevant,
-      totalArticles: scored.length,
-      relevantCount: relevant.length,
-      sourcesOnline: cache.sourcesOnline,
-      topKeywords: keywords.slice(0, 5),
-      mostActiveSource: getMostActiveSource(scored),
-      lastRefreshedAt: cache.lastRefresh,
-      channelFormats: {
-        whatsapp: formatWhatsApp(relevant),
-        telegram: formatTelegram(relevant),
-        growthlab: formatGrowthLab(relevant)
-      }
-    };
-
-    return { status: 'ok', articlesFetched: result.totalFetched, newArticles: scored.length, relevantCount: relevant.length };
+    return { status: 'ok', articlesFetched: result.totalFetched, newArticles: scored.length, relevantCount: cache.digest?.relevantCount || 0 };
   } catch (err) {
     console.error('Refresh error:', err.message);
     return { status: 'error', message: err.message };
@@ -128,6 +110,59 @@ function getMostActiveSource(articles) {
   return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
 }
 
+// Shuffle an array in-place (Fisher-Yates)
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Build digest from a scored article list, optionally shuffling for variety
+function buildDigest(scored, shuffleRelevant = false) {
+  let relevant = scored.filter(a => a.relevanceScore >= 30);
+
+  // If not enough relevant, lower threshold to catch more
+  if (relevant.length < 5) {
+    relevant = scored.filter(a => a.relevanceScore >= 15);
+  }
+  if (relevant.length < 5 && scored.length > 0) {
+    relevant = scored.slice(0, 15);
+  }
+
+  // Shuffle for variety -- pick random articles regardless of score
+  if (shuffleRelevant && scored.length > 3) {
+    // Randomly pick articles from the full pool
+    const count = Math.min(12, scored.length);
+    const pool = shuffle([...scored]);
+    // Mix high-scored with random ones to keep relevance
+    const highScored = pool.filter(a => a.relevanceScore >= 25).slice(0, 4);
+    const randomOnes = shuffle(pool.filter(a => a.relevanceScore < 25 || Math.random() > 0.5)).slice(0, count - highScored.length);
+    relevant = shuffle([...highScored, ...randomOnes]);
+  }
+
+  const keywords = extractTopKeywords(relevant);
+
+  cache.digest = {
+    date: new Date().toISOString().split('T')[0],
+    articles: relevant,
+    totalArticles: scored.length,
+    relevantCount: relevant.length,
+    sourcesOnline: cache.sourcesOnline,
+    topKeywords: keywords.slice(0, 5),
+    mostActiveSource: getMostActiveSource(scored),
+    lastRefreshedAt: cache.lastRefresh,
+    channelFormats: {
+      whatsapp: formatWhatsApp(relevant),
+      telegram: formatTelegram(relevant),
+      growthlab: formatGrowthLab(relevant)
+    }
+  };
+
+  return cache.digest;
+}
+
 // ─── API Routes ───────────────────────────────────────────
 
 app.get('/api/health', (req, res) => {
@@ -145,7 +180,8 @@ app.get('/api/news/latest', (req, res) => {
   const { category, q, time } = req.query;
 
   if (category && category !== 'all') {
-    articles = articles.filter(a => a.categories.includes(category));
+    const catLower = category.toLowerCase();
+    articles = articles.filter(a => a.categories.some(c => c.toLowerCase() === catLower));
   }
   if (q) {
     const query = q.toLowerCase();
@@ -183,6 +219,20 @@ app.get('/api/digest/today', (req, res) => {
   res.json({ digest: cache.digest });
 });
 
+app.post('/api/digest/regenerate', (req, res) => {
+  if (cache.articles.length === 0) {
+    return res.json({ status: 'error', message: 'No articles cached. Run refresh first.' });
+  }
+  const digest = buildDigest(cache.articles, true);
+  res.json({
+    status: 'ok',
+    digest: {
+      channelFormats: digest.channelFormats,
+      relevantCount: digest.relevantCount
+    }
+  });
+});
+
 app.post('/api/refresh', async (req, res) => {
   const result = await runRefresh();
   res.json(result);
@@ -197,6 +247,22 @@ app.post('/api/post/telegram', async (req, res) => {
   }
   try {
     const result = await postToTelegram(cache.digest.channelFormats.telegram);
+    res.json(result);
+  } catch (err) {
+    res.json({ status: 'error', message: err.message });
+  }
+});
+
+app.post('/api/post/telegram/custom', async (req, res) => {
+  if (!process.env.TELEGRAM_BOT_TOKEN || !process.env.TELEGRAM_CHAT_ID) {
+    return res.json({ status: 'not_configured', message: 'Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env' });
+  }
+  const { text } = req.body;
+  if (!text || !text.trim()) {
+    return res.json({ status: 'error', message: 'No text provided. Send { "text": "your message" }' });
+  }
+  try {
+    const result = await postToTelegram(text.trim());
     res.json(result);
   } catch (err) {
     res.json({ status: 'error', message: err.message });
