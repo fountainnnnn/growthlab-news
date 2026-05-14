@@ -293,12 +293,13 @@ function App() {
 // Renders Telegram-style Markdown links as clickable HTML in the preview
 function FormattedTelegram({ text }: { text: string }) {
   // Convert [text](url) to <a href="url">text</a>
+  // split with capture groups produces: [before, full, text, url, between, full, text, url, ...]
   const parts = text.split(/(\[([^\]]+)\]\(([^)]+)\))/g);
   const elements: React.ReactNode[] = [];
   let i = 0;
   while (i < parts.length) {
-    if (parts[i] && parts[i].startsWith('[') && parts[i+2]) {
-      // Full match is parts[i], text is parts[i+1], url is parts[i+2]
+    if (parts[i] && parts[i].startsWith('[')) {
+      // Full match at i, text at i+1, url at i+2
       elements.push(
         <a
           key={i}
@@ -310,21 +311,20 @@ function FormattedTelegram({ text }: { text: string }) {
           {parts[i+1]}
         </a>
       );
-      i += 4;
+      i += 3; // Skip full match + text + url, land on 'between' segment
+    } else if (parts[i]) {
+      const lines = parts[i].split('\n');
+      lines.forEach((line, li) => {
+        elements.push(<span key={`${i}-${li}`}>{line}</span>);
+        if (li < lines.length - 1) elements.push(<br key={`br-${i}-${li}`} />);
+      });
+      i++;
     } else {
-      // Plain text - render line by line
-      if (parts[i]) {
-        const lines = parts[i].split('\n');
-        lines.forEach((line, li) => {
-          elements.push(<span key={`${i}-${li}`}>{line}</span>);
-          if (li < lines.length - 1) elements.push(<br key={`br-${i}-${li}`} />);
-        });
-      }
       i++;
     }
   }
 
-  return <>{elements.length > 0 ? elements : text}</>;
+  return <>{elements}</>;
 }
 
 export default App;
