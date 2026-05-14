@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #1C2128 transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 6px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: #1C2128;
+    border-radius: 3px;
+  }
+}
+
+@layer components {
+  .card-hover {
+    @apply transition-all duration-200 ease-out;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    border-color: rgba(139, 148, 158, 0.25);
+  }
+  .category-pill {
+    @apply px-3 py-1 rounded-full text-xs font-medium cursor-pointer select-none transition-all duration-150;
+  }
+  .category-pill-active {
+    @apply bg-[#7C5CFC] text-white;
+  }
+  .category-pill-inactive {
+    @apply bg-[#1C2128] text-[#8B949E] hover:bg-[#21262D] hover:text-[#E6EDF3];
+  }
+  .source-badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium leading-tight;
+  }
+  .stat-value {
+    @apply font-mono text-2xl font-semibold tracking-tight;
+  }
+  .stat-label {
+    @apply text-xs text-[#8B949E] mt-0.5;
+  }
+  .loading-skeleton {
+    @apply animate-pulse bg-[#1C2128] rounded;
+  }
+}
