@@ -290,6 +290,16 @@ async function start() {
     console.log('Scheduled daily refresh...');
     await runRefresh();
     console.log('Daily refresh complete');
+
+    // Auto-post to Telegram if configured
+    if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID && cache.digest) {
+      try {
+        const result = await postToTelegram(cache.digest.channelFormats.telegram);
+        console.log('Auto-posted to Telegram:', result.messageId);
+      } catch (err) {
+        console.warn('Auto-post to Telegram failed:', err.message);
+      }
+    }
   });
 
   app.listen(PORT, '0.0.0.0', () => {
