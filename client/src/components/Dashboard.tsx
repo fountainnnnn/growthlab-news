@@ -14,14 +14,6 @@ export function TopBar({ searchQuery, onSearchChange, lastRefresh, sourcesOnline
   return (
     <header className="bg-gl-surface border-b border-[rgba(139,148,158,0.15)] px-4 md:px-6 py-3">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gl-accent flex items-center justify-center text-white font-bold text-sm">G</div>
-          <div>
-            <h1 className="text-base font-semibold text-gl-text leading-tight">GrowthLab Intelligence</h1>
-            <p className="text-[11px] text-gl-text-secondary">Daily Startup News for SEA Founders</p>
-          </div>
-        </div>
-
         <div className="flex items-center gap-3 flex-1 max-w-md">
           <div className="relative flex-1">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gl-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
