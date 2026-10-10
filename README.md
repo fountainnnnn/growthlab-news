@@ -1,5 +1,7 @@
 # GrowthLab Intelligence
 
+> Built at the OpenClaw hackathon for GrowthLab, using the OpenClaw agent.
+
 Daily startup news aggregator and Telegram publisher for SEA founders.
 
 Fetches articles from Singapore and Southeast Asian sources, scores for founder relevance, and lets you preview, edit, and post curated digests to Telegram.
